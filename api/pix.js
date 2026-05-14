@@ -4,10 +4,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { name, cpf, email, phone, amount, productName, referenceId } = req.body;
+  const { name, cpf, email, phone, amount, productName, referenceId, trackingParameters } = req.body;
 
   try {
     const apiKey = process.env.PODPAY_API_KEY;
+    const utmifyToken = process.env.UTMIFY_TOKEN;
+
     if (!apiKey) {
       console.error("ERRO: Variável de ambiente PODPAY_API_KEY não configurada");
       return res.status(500).json({ error: 'Erro de configuração do servidor (Podpay API Key)' });
@@ -15,6 +17,70 @@ export default async function handler(req, res) {
 
     const orderReference = referenceId || `PEDIDO-${Date.now()}`;
     const amountInCents = Math.round(amount * 100);
+
+    // Enviar para Utmify (Opcional, não bloqueia o PIX)
+    if (utmifyToken) {
+      try {
+        const utmifyPayload = {
+          orderId: orderReference,
+          platform: "Podpay",
+          paymentMethod: "pix",
+          status: "waiting_payment",
+          createdAt: new Date().toISOString().replace('T', ' ').split('.')[0],
+          approvedDate: null,
+          refundedAt: null,
+          customer: {
+            name: name,
+            email: email,
+            phone: phone.replace(/\D/g, ""),
+            document: cpf.replace(/\D/g, ""),
+            country: "BR"
+          },
+          products: [
+            {
+              id: productName || "vapex-item",
+              name: productName || "Pedido Vapex",
+              planId: null,
+              planName: null,
+              quantity: 1,
+              priceInCents: amountInCents
+            }
+          ],
+          trackingParameters: {
+            utm_source: trackingParameters?.utm_source || null,
+            utm_medium: trackingParameters?.utm_medium || null,
+            utm_campaign: trackingParameters?.utm_campaign || null,
+            utm_content: trackingParameters?.utm_content || null,
+            utm_term: trackingParameters?.utm_term || null,
+            src: trackingParameters?.src || null,
+            sck: trackingParameters?.sck || null
+          },
+          commission: {
+            totalPriceInCents: amountInCents,
+            gatewayFeeInCents: Math.round(amountInCents * 0.05), // Estimativa de 5%
+            userCommissionInCents: Math.round(amountInCents * 0.95)
+          },
+          isTest: false
+        };
+
+        const utmifyResponse = await fetch("https://api.utmify.com.br/api-credentials/orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-token": utmifyToken
+          },
+          body: JSON.stringify(utmifyPayload)
+        });
+        
+        const utmifyResult = await utmifyResponse.json().catch(() => ({}));
+        console.log("--- RESPOSTA UTMIFY ---", {
+          status: utmifyResponse.status,
+          data: utmifyResult
+        });
+      } catch (e) {
+        console.error("Erro ao enviar para Utmify:", e);
+      }
+    }
 
     // Payload para Podpay (conforme documentação /v1/transactions)
     const payload = {

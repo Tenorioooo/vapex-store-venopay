@@ -87,7 +87,8 @@ export default function CheckoutPage() {
                 phone: form.phone,
                 amount: finalTotal - total * 0.05,
                 productName: productNames.substring(0, 255),
-                referenceId: order.id
+                referenceId: order.id,
+                trackingParameters: JSON.parse(sessionStorage.getItem('vapex_utms') || '{}')
               }),
             }).catch(() => null);
 

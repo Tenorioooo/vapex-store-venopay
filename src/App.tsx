@@ -14,7 +14,27 @@ import NewArrivalsPage from './pages/NewArrivalsPage';
 import InfoPage from './pages/InfoPage';
 import AdminProductsPage from './pages/admin/AdminProductsPage';
 
+import { useEffect } from 'react';
+
 function App() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const utms = {
+      utm_source: params.get('utm_source'),
+      utm_medium: params.get('utm_medium'),
+      utm_campaign: params.get('utm_campaign'),
+      utm_content: params.get('utm_content'),
+      utm_term: params.get('utm_term'),
+      src: params.get('src'),
+      sck: params.get('sck')
+    };
+
+    // Só salva se houver algum UTM presente
+    if (Object.values(utms).some(v => v !== null)) {
+      sessionStorage.setItem('vapex_utms', JSON.stringify(utms));
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <CartProvider>
