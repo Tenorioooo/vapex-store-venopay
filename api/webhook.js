@@ -21,29 +21,63 @@ export default async function handler(req, res) {
     try {
       const utmifyToken = process.env.UTMIFY_TOKEN;
       
-      if (utmifyToken) {
-        const utmifyPayload = {
-          orderId: orderId,
-          status: "approved",
-          approvedDate: new Date().toISOString().replace('T', ' ').split('.')[0],
-          paymentMethod: "pix",
-          platform: "VenoPayments"
-        };
-
-        console.log("Enviando para Utmify:", utmifyPayload);
-
-        const utmifyResponse = await fetch("https://api.utmify.com.br/api-credentials/orders", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-token": utmifyToken
-          },
-          body: JSON.stringify(utmifyPayload)
-        });
-
-        const utmifyResult = await utmifyResponse.json().catch(() => ({}));
-        console.log("Resposta da Utmify no Webhook:", utmifyResult);
+      if (!utmifyToken) {
+        console.error("ERRO CRÍTICO: UTMIFY_TOKEN não encontrado!");
+        return res.status(500).json({ error: "Token missing" });
       }
+
+      const amountInCents = data.data?.amount || data.amount || 0;
+      const payer = data.data?.payer || data.payer || {};
+
+      const utmifyPayload = {
+        orderId: orderId,
+        status: "paid", // Utmify exige 'paid'
+        createdAt: new Date().toISOString().replace('T', ' ').split('.')[0],
+        approvedDate: new Date().toISOString().replace('T', ' ').split('.')[0],
+        paymentMethod: "pix",
+        platform: "VenoPayments",
+        customer: {
+          name: payer.name || "Cliente Vapex",
+          email: payer.email || "contato@vapex.com",
+          phone: (payer.phone || "").replace(/\D/g, ""),
+          document: (payer.document || "").replace(/\D/g, ""),
+          country: "BR"
+        },
+        products: [
+          {
+            id: "vapex-item",
+            name: "Produto Vapex",
+            quantity: 1,
+            priceInCents: amountInCents
+          }
+        ],
+        trackingParameters: {
+          utm_source: data.utm_source || "",
+          utm_medium: data.utm_medium || "",
+          utm_campaign: data.utm_campaign || "",
+          utm_content: data.utm_content || "",
+          utm_term: data.utm_term || ""
+        },
+        commission: {
+          totalPriceInCents: amountInCents,
+          gatewayFeeInCents: Math.round(amountInCents * 0.05),
+          userCommissionInCents: Math.round(amountInCents * 0.95)
+        }
+      };
+
+      console.log("Enviando Payload Completo para Utmify:", JSON.stringify(utmifyPayload, null, 2));
+
+      const utmifyResponse = await fetch("https://api.utmify.com.br/api-credentials/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-token": utmifyToken
+        },
+        body: JSON.stringify(utmifyPayload)
+      });
+
+      const utmifyResult = await utmifyResponse.json().catch(() => ({}));
+      console.log("Resultado Final Utmify:", utmifyResult);
     } catch (error) {
       console.error("Erro ao processar webhook para Utmify:", error);
     }
