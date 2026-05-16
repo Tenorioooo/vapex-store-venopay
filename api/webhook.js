@@ -5,18 +5,23 @@ export default async function handler(req, res) {
   }
 
   const data = req.body;
-  console.log("Webhook Veno recebido:", data);
+  console.log("Webhook Veno recebido (Body):", JSON.stringify(data, null, 2));
 
-  // A Veno envia o status no campo 'status'. Se for 'paid' ou 'approved', confirmamos.
-  const isPaid = data.status === 'paid' || data.status === 'approved' || data.event === 'payment.succeeded';
+  // Tenta pegar o ID do pedido de várias formas comuns em gateways
+  const orderId = data.external_id || data.reference_id || (data.data && data.data.external_id);
+  const status = (data.status || (data.data && data.data.status) || "").toLowerCase();
+  const event = (data.event || "").toLowerCase();
 
-  if (isPaid) {
+  // Verifica se o status indica pagamento (paid, approved, payment.succeeded, etc)
+  const isPaid = status === 'paid' || status === 'approved' || event === 'payment.succeeded' || event === 'order.paid';
+
+  console.log(`Processando pedido: ${orderId} | Status: ${status} | Pago: ${isPaid}`);
+
+  if (isPaid && orderId) {
     try {
       const utmifyToken = process.env.UTMIFY_TOKEN;
-      const orderId = data.external_id || data.reference_id;
-
-      if (utmifyToken && orderId) {
-        // Enviar atualização para Utmify
+      
+      if (utmifyToken) {
         const utmifyPayload = {
           orderId: orderId,
           status: "approved",
@@ -24,6 +29,8 @@ export default async function handler(req, res) {
           paymentMethod: "pix",
           platform: "VenoPayments"
         };
+
+        console.log("Enviando para Utmify:", utmifyPayload);
 
         const utmifyResponse = await fetch("https://api.utmify.com.br/api-credentials/orders", {
           method: "POST",
@@ -35,7 +42,7 @@ export default async function handler(req, res) {
         });
 
         const utmifyResult = await utmifyResponse.json().catch(() => ({}));
-        console.log("Utmify Webhook Update:", utmifyResult);
+        console.log("Resposta da Utmify no Webhook:", utmifyResult);
       }
     } catch (error) {
       console.error("Erro ao processar webhook para Utmify:", error);
