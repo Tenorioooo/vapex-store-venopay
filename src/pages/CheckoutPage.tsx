@@ -38,17 +38,132 @@ export default function CheckoutPage() {
     cardNumber: '', cardName: '', cardExpiry: '', cardCvv: '',
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateCPF = (cpf: string) => {
+    const cleanCPF = cpf.replace(/\D/g, '');
+    if (cleanCPF.length !== 11) return false;
+    if (/^(\d)\1{10}$/.test(cleanCPF)) return false;
+
+    let sum = 0;
+    let remainder;
+
+    for (let i = 1; i <= 9; i++) sum = sum + parseInt(cleanCPF.substring(i - 1, i)) * (11 - i);
+    remainder = (sum * 10) % 11;
+    if ((remainder === 10) || (remainder === 11)) remainder = 0;
+    if (remainder !== parseInt(cleanCPF.substring(9, 10))) return false;
+
+    sum = 0;
+    for (let i = 1; i <= 10; i++) sum = sum + parseInt(cleanCPF.substring(i - 1, i)) * (12 - i);
+    remainder = (sum * 10) % 11;
+    if ((remainder === 10) || (remainder === 11)) remainder = 0;
+    if (remainder !== parseInt(cleanCPF.substring(10, 11))) return false;
+
+    return true;
+  };
+
+  const validateEmail = (email: string) => {
+    return /\S+@\S+\.\S+/.test(email);
+  };
+
+  const validatePhone = (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    return cleanPhone.length >= 10 && cleanPhone.length <= 11;
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (form.name.trim().split(' ').length < 2) {
+      newErrors.name = 'Informe seu nome completo';
+    }
+
+    if (!validateEmail(form.email)) {
+      newErrors.email = 'E-mail inválido';
+    }
+
+    if (!validatePhone(form.phone)) {
+      newErrors.phone = 'Telefone inválido (com DDD)';
+    }
+
+    if (!validateCPF(form.cpf)) {
+      newErrors.cpf = 'CPF inválido';
+    }
+
+    if (!form.cep || form.cep.replace(/\D/g, '').length !== 8) {
+      newErrors.cep = 'CEP inválido';
+    }
+
+    if (!form.street) newErrors.street = 'Rua é obrigatória';
+    if (!form.number) newErrors.number = 'Número é obrigatório';
+    if (!form.neighborhood) newErrors.neighborhood = 'Bairro é obrigatório';
+    if (!form.city) newErrors.city = 'Cidade é obrigatória';
+    if (!form.state) newErrors.state = 'UF é obrigatória';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const shipping = 0;
   const promoDiscount = subtotal - total;
   const finalTotal = total + shipping;
 
-  const updateForm = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
+  const updateForm = (field: string, value: string) => {
+    let formattedValue = value;
+
+    // Basic masking
+    if (field === 'cpf') {
+      const clean = value.replace(/\D/g, '').slice(0, 11);
+      formattedValue = clean
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+        .replace(/(-\d{2})\d+?$/, '$1');
+    } else if (field === 'phone') {
+      const clean = value.replace(/\D/g, '').slice(0, 11);
+      if (clean.length <= 10) {
+        formattedValue = clean
+          .replace(/(\d{2})(\d)/, '($1) $2')
+          .replace(/(\d{4})(\d)/, '$1-$2');
+      } else {
+        formattedValue = clean
+          .replace(/(\d{2})(\d)/, '($1) $2')
+          .replace(/(\d{5})(\d)/, '$1-$2');
+      }
+    } else if (field === 'cep') {
+      const clean = value.replace(/\D/g, '').slice(0, 8);
+      formattedValue = clean.replace(/(\d{5})(\d)/, '$1-$2');
+    }
+
+    setForm(prev => ({ ...prev, [field]: formattedValue }));
+    if (errors[field]) {
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
+
+  const handleNextStep = () => {
+    if (validateForm()) {
+      setStep('payment');
+      window.scrollTo(0, 0);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!user && import.meta.env.VITE_SUPABASE_URL) {
       navigate('/login');
       return;
     }
+    
+    // Final validation check
+    if (!validateForm()) {
+      setStep('info');
+      return;
+    }
+
     setSubmitting(true);
     try {
       let order = { id: `GUEST-${Date.now()}` };
@@ -95,9 +210,9 @@ export default function CheckoutPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 name: form.name,
-                cpf: form.cpf,
+                cpf: form.cpf.replace(/\D/g, ''),
                 email: form.email,
-                phone: form.phone,
+                phone: form.phone.replace(/\D/g, ''),
                 amount: finalTotal - total * 0.05,
                 productName: productNames.substring(0, 255),
                 referenceId: order.id,
@@ -174,46 +289,55 @@ export default function CheckoutPage() {
                 <div>
                   <label className="text-sm text-gray-400 mb-1.5 block">Nome completo</label>
                   <input value={form.name} onChange={e => updateForm('name', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
+                    className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 ${errors.name ? 'border-red-500/50' : 'border-white/10'}`}
                     placeholder="Seu nome" />
+                  {errors.name && <p className="text-[10px] text-red-500 mt-1 ml-1">{errors.name}</p>}
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 mb-1.5 block">E-mail</label>
                   <input value={form.email} onChange={e => updateForm('email', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
+                    className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 ${errors.email ? 'border-red-500/50' : 'border-white/10'}`}
                     placeholder="seu@email.com" />
+                  {errors.email && <p className="text-[10px] text-red-500 mt-1 ml-1">{errors.email}</p>}
                 </div>
               </div>
-              <div>
-                <label className="text-sm text-gray-400 mb-1.5 block">Telefone</label>
-                <input value={form.phone} onChange={e => updateForm('phone', e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
-                  placeholder="(11) 99999-9999" />
-              </div>
-              <div>
-                <label className="text-sm text-gray-400 mb-1.5 block">CPF</label>
-                <input value={form.cpf} onChange={e => updateForm('cpf', e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
-                  placeholder="000.000.000-00" />
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 block">Telefone</label>
+                  <input value={form.phone} onChange={e => updateForm('phone', e.target.value)}
+                    className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 ${errors.phone ? 'border-red-500/50' : 'border-white/10'}`}
+                    placeholder="(11) 99999-9999" />
+                  {errors.phone && <p className="text-[10px] text-red-500 mt-1 ml-1">{errors.phone}</p>}
+                </div>
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 block">CPF</label>
+                  <input value={form.cpf} onChange={e => updateForm('cpf', e.target.value)}
+                    className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 ${errors.cpf ? 'border-red-500/50' : 'border-white/10'}`}
+                    placeholder="000.000.000-00" />
+                  {errors.cpf && <p className="text-[10px] text-red-500 mt-1 ml-1">{errors.cpf}</p>}
+                </div>
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-1.5 block">CEP</label>
                 <input value={form.cep} onChange={e => updateForm('cep', e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
+                  className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 ${errors.cep ? 'border-red-500/50' : 'border-white/10'}`}
                   placeholder="00000-000" />
+                {errors.cep && <p className="text-[10px] text-red-500 mt-1 ml-1">{errors.cep}</p>}
               </div>
               <div className="grid sm:grid-cols-3 gap-4">
                 <div className="sm:col-span-2">
                   <label className="text-sm text-gray-400 mb-1.5 block">Rua</label>
                   <input value={form.street} onChange={e => updateForm('street', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
+                    className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 ${errors.street ? 'border-red-500/50' : 'border-white/10'}`}
                     placeholder="Rua" />
+                  {errors.street && <p className="text-[10px] text-red-500 mt-1 ml-1">{errors.street}</p>}
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 mb-1.5 block">Número</label>
                   <input value={form.number} onChange={e => updateForm('number', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
+                    className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 ${errors.number ? 'border-red-500/50' : 'border-white/10'}`}
                     placeholder="123" />
+                  {errors.number && <p className="text-[10px] text-red-500 mt-1 ml-1">{errors.number}</p>}
                 </div>
               </div>
               <div className="grid sm:grid-cols-3 gap-4">
@@ -226,21 +350,24 @@ export default function CheckoutPage() {
                 <div>
                   <label className="text-sm text-gray-400 mb-1.5 block">Bairro</label>
                   <input value={form.neighborhood} onChange={e => updateForm('neighborhood', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
+                    className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 ${errors.neighborhood ? 'border-red-500/50' : 'border-white/10'}`}
                     placeholder="Bairro" />
+                  {errors.neighborhood && <p className="text-[10px] text-red-500 mt-1 ml-1">{errors.neighborhood}</p>}
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 mb-1.5 block">Cidade</label>
                   <input value={form.city} onChange={e => updateForm('city', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
+                    className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 ${errors.city ? 'border-red-500/50' : 'border-white/10'}`}
                     placeholder="Cidade" />
+                  {errors.city && <p className="text-[10px] text-red-500 mt-1 ml-1">{errors.city}</p>}
                 </div>
               </div>
               <div className="w-1/3">
                 <label className="text-sm text-gray-400 mb-1.5 block">Estado</label>
                 <input value={form.state} onChange={e => updateForm('state', e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
+                  className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 ${errors.state ? 'border-red-500/50' : 'border-white/10'}`}
                   placeholder="SP" />
+                {errors.state && <p className="text-[10px] text-red-500 mt-1 ml-1">{errors.state}</p>}
               </div>
             </div>
 
@@ -295,7 +422,7 @@ export default function CheckoutPage() {
               <Link to="/carrinho" className="px-6 py-3 text-gray-400 hover:text-white transition-colors text-sm">
                 Voltar ao carrinho
               </Link>
-              <button onClick={() => setStep('payment')}
+              <button onClick={handleNextStep}
                 className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-cyan-500/25">
                 Continuar
               </button>
