@@ -71,7 +71,12 @@ export default async function handler(req, res) {
           body: JSON.stringify(utmifyPayload)
         });
         
-        await utmifyResponse.json().catch(() => ({}));
+        const utmifyResult = await utmifyResponse.json().catch(() => ({}));
+        if (!utmifyResponse.ok) {
+          console.error("Erro detalhado Utmify:", utmifyResult);
+        } else {
+          console.log("Sucesso Utmify:", utmifyResult);
+        }
       } catch (e) {
         console.error("Erro ao enviar para Utmify:", e);
       }

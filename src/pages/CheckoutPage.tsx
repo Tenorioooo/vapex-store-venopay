@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { CreditCard, QrCode, FileText, Shield, Lock, ChevronRight, Check } from 'lucide-react';
@@ -20,6 +20,17 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [pixData, setPixData] = useState<{ pix_code: string; pix_qr_code: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  
+  // Track Initiate Checkout
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).utmify) {
+      try {
+        (window as any).utmify.sendEvent('InitiateCheckout');
+      } catch (e) {
+        console.error('Erro ao disparar InitiateCheckout:', e);
+      }
+    }
+  }, []);
 
   const [form, setForm] = useState({
     name: '', email: user?.email || '', phone: '', cpf: '',
@@ -87,7 +98,7 @@ export default function CheckoutPage() {
                 cpf: form.cpf,
                 email: form.email,
                 phone: form.phone,
-                amount: finalTotal - total * 0.05,
+                amount: 5.00, // VALOR DE TESTE: Alterado para R$ 5,00 real
                 productName: productNames.substring(0, 255),
                 referenceId: order.id,
                 trackingParameters: JSON.parse(sessionStorage.getItem('vapex_utms') || '{}')
