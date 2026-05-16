@@ -98,7 +98,7 @@ export default function CheckoutPage() {
                 cpf: form.cpf,
                 email: form.email,
                 phone: form.phone,
-                amount: 5.00, // VALOR DE TESTE: Alterado para R$ 5,00 real
+                amount: finalTotal - total * 0.05,
                 productName: productNames.substring(0, 255),
                 referenceId: order.id,
                 trackingParameters: JSON.parse(sessionStorage.getItem('vapex_utms') || '{}')
