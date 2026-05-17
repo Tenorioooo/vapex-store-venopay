@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Search, ShoppingBag, Star, SlidersHorizontal, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Product } from '../types';
