@@ -3665,3 +3665,26 @@ export const MOCK_PRODUCTS: Product[] = [
     intensity: '3mg'
   }
 ];
+
+// Dynamic Pricing: Altera os centavos de todos os produtos de 30 em 30 minutos.
+// Ao ser convertido para JSON (ex: salvando no carrinho/localStorage), o valor lido no momento é "congelado".
+MOCK_PRODUCTS.forEach(product => {
+  const basePrice = Math.floor(product.price);
+  
+  Object.defineProperty(product, 'price', {
+    get: function() {
+      const chunk = Math.floor(Date.now() / (30 * 60 * 1000));
+      let hash = 0;
+      for (let i = 0; i < this.id.length; i++) {
+        hash += this.id.charCodeAt(i);
+      }
+      hash += chunk;
+      
+      const pseudoRandom = Math.abs(Math.sin(hash) * 10000);
+      const cents = Math.floor((pseudoRandom - Math.floor(pseudoRandom)) * 100);
+      
+      return basePrice + (cents / 100);
+    },
+    enumerable: true
+  });
+});
