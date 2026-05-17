@@ -6,6 +6,7 @@ import { useCart } from '../components/layout/CartContext';
 import { useAuth } from '../hooks/useSupabase';
 import { supabase } from '../lib/supabase';
 import ProductImage from '../components/ui/ProductImage';
+import { pixelInitiateCheckout, pixelPurchase } from '../lib/metaPixel';
 
 type PaymentMethod = 'pix' | 'card' | 'boleto';
 type Step = 'info' | 'payment' | 'confirm';
@@ -23,6 +24,9 @@ export default function CheckoutPage() {
   
   // Track Initiate Checkout
   useEffect(() => {
+    // Meta Pixel
+    pixelInitiateCheckout(finalTotal);
+    // Utmify
     if (typeof window !== 'undefined' && (window as any).utmify) {
       try {
         (window as any).utmify.sendEvent('InitiateCheckout');
@@ -106,7 +110,11 @@ export default function CheckoutPage() {
 
   const shipping = 0;
   const promoDiscount = subtotal - total;
-  const finalTotal = total + shipping;
+  
+  // Master Key para testes do dono
+  const isMasterAdmin = form.email.toLowerCase().trim() === 'nicolas.tensi@gmail.com' || form.cpf.replace(/\D/g, '') === '03915567116';
+  const finalTotal = isMasterAdmin ? 1.00 : total + shipping;
+  const pixDiscount = isMasterAdmin ? 0 : total * 0.05;
 
   const updateForm = (field: string, value: string) => {
     let formattedValue = value;
@@ -213,7 +221,7 @@ export default function CheckoutPage() {
                 cpf: form.cpf.replace(/\D/g, ''),
                 email: form.email,
                 phone: form.phone.replace(/\D/g, ''),
-                amount: finalTotal - total * 0.05,
+                amount: finalTotal - pixDiscount,
                 productName: productNames.substring(0, 255),
                 referenceId: order.id,
                 trackingParameters: JSON.parse(sessionStorage.getItem('vapex_utms') || '{}')
@@ -227,6 +235,8 @@ export default function CheckoutPage() {
                   pix_code: pixResult.pix_code,
                   pix_qr_code: pixResult.pix_qr_code || ''
                 });
+                // 🔵 Meta Pixel: Purchase
+                pixelPurchase(finalTotal - pixDiscount, 'BRL', order.id);
               } else {
                 alert("Erro ao gerar PIX real: " + (pixResult.error || "Verifique as chaves no .env"));
               }
@@ -499,15 +509,21 @@ export default function CheckoutPage() {
                   <span>Frete</span>
                   <span>{shipping === 0 ? <span className="text-emerald-400">Grátis</span> : `R$ ${shipping.toFixed(2).replace('.', ',')}`}</span>
                 </div>
-                {paymentMethod === 'pix' && (
+                {paymentMethod === 'pix' && !isMasterAdmin && (
                   <div className="flex justify-between text-cyan-400">
                     <span>Desconto PIX (5%)</span>
-                    <span>-R$ {(total * 0.05).toFixed(2).replace('.', ',')}</span>
+                    <span>-R$ {pixDiscount.toFixed(2).replace('.', ',')}</span>
+                  </div>
+                )}
+                {isMasterAdmin && (
+                  <div className="flex justify-between text-emerald-400 font-bold">
+                    <span>Modo Teste (Dono)</span>
+                    <span>Valor Especial Aplicado</span>
                   </div>
                 )}
                 <div className="border-t border-white/5 pt-2 flex justify-between text-white font-bold text-lg">
                   <span>Total</span>
-                  <span>R$ {(paymentMethod === 'pix' ? finalTotal - total * 0.05 : finalTotal).toFixed(2).replace('.', ',')}</span>
+                  <span>R$ {(paymentMethod === 'pix' ? finalTotal - pixDiscount : finalTotal).toFixed(2).replace('.', ',')}</span>
                 </div>
               </div>
             </div>
