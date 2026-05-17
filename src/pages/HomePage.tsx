@@ -1,4 +1,5 @@
 import Hero from '../components/home/Hero';
+import PromoBanner from '../components/home/PromoBanner';
 import Categories from '../components/home/Categories';
 import FeaturedProducts from '../components/home/FeaturedProducts';
 import Lifestyle from '../components/home/Lifestyle';
@@ -8,6 +9,7 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      <PromoBanner />
       <Categories />
       <FeaturedProducts />
       <Lifestyle />
