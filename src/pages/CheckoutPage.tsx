@@ -546,11 +546,11 @@ export default function CheckoutPage() {
 
         {step === 'confirm' && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-12">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
-              <Check size={40} className="text-emerald-400" />
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-cyan-500/20 flex items-center justify-center animate-pulse">
+              <QrCode size={40} className="text-cyan-400" />
             </div>
-            <h2 className="text-3xl font-bold text-white mb-4">Pedido Confirmado!</h2>
-            <p className="text-gray-400 mb-2">Seu pedido foi realizado com sucesso.</p>
+            <h2 className="text-3xl font-bold text-white mb-4">Aguardando Pagamento</h2>
+            <p className="text-gray-400 mb-2">Escaneie o QR Code ou copie o código PIX para confirmar seu pedido.</p>
             {orderId && <p className="text-gray-500 text-sm mb-8">ID do pedido: {orderId.slice(0, 8).toUpperCase()}</p>}
             
             {pixData && (
