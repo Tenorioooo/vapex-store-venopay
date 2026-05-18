@@ -139,7 +139,7 @@ export default function FeaturedProducts() {
   ];
 
   return (
-    <section className="py-20 bg-[#050505]">
+    <section className="pt-36 pb-20 bg-[#050505]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
