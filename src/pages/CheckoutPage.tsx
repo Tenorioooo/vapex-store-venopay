@@ -113,7 +113,7 @@ export default function CheckoutPage() {
   
   // Master Key para testes do dono
   const isMasterAdmin = form.email.toLowerCase().trim() === 'nicolas.tensi@gmail.com' || form.cpf.replace(/\D/g, '') === '03915567116';
-  const finalTotal = isMasterAdmin ? 1.00 : total + shipping;
+  const finalTotal = isMasterAdmin ? 5.00 : total + shipping;
   const pixDiscount = isMasterAdmin ? 0 : total * 0.05;
 
   const updateForm = (field: string, value: string) => {
