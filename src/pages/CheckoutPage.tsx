@@ -141,6 +141,31 @@ export default function CheckoutPage() {
     } else if (field === 'cep') {
       const clean = value.replace(/\D/g, '').slice(0, 8);
       formattedValue = clean.replace(/(\d{5})(\d)/, '$1-$2');
+      
+      if (clean.length === 8) {
+        fetch(`https://viacep.com.br/ws/${clean}/json/`)
+          .then(res => res.json())
+          .then(data => {
+            if (!data.erro) {
+              setForm(prev => ({
+                ...prev,
+                street: data.logradouro || prev.street,
+                neighborhood: data.bairro || prev.neighborhood,
+                city: data.localidade || prev.city,
+                state: data.uf || prev.state,
+              }));
+              setErrors(prev => {
+                const next = { ...prev };
+                if (data.logradouro) delete next.street;
+                if (data.bairro) delete next.neighborhood;
+                if (data.localidade) delete next.city;
+                if (data.uf) delete next.state;
+                return next;
+              });
+            }
+          })
+          .catch(e => console.error("Erro no ViaCEP:", e));
+      }
     }
 
     setForm(prev => ({ ...prev, [field]: formattedValue }));
