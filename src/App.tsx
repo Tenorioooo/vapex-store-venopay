@@ -14,6 +14,7 @@ import SearchPage from './pages/SearchPage';
 import NewArrivalsPage from './pages/NewArrivalsPage';
 import InfoPage from './pages/InfoPage';
 import AdminProductsPage from './pages/admin/AdminProductsPage';
+import IntegrationsPage from './pages/IntegrationsPage';
 import { initMetaPixel, pixelPageView } from './lib/metaPixel';
 
 import { useEffect } from 'react';
@@ -73,6 +74,7 @@ function App() {
             <Route path="/login" element={<AuthPage />} />
             <Route path="/busca" element={<SearchPage />} />
             <Route path="/admin/produtos" element={<AdminProductsPage />} />
+            <Route path="/settings/integrations" element={<IntegrationsPage />} />
           </Routes>
           <Footer />
         </div>

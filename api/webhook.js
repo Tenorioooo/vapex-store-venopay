@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { sendDialogTracking } from './dialog.js';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
@@ -39,6 +40,13 @@ export default async function handler(req, res) {
       } catch (sbErr) {
         console.error("Erro na integração com o Supabase no Webhook:", sbErr);
       }
+    }
+
+    // Dispara webhook de rastreio para o DiaLOG Rastreios
+    try {
+      await sendDialogTracking(orderId);
+    } catch (dialogErr) {
+      console.error("Erro ao disparar webhook do DiaLOG:", dialogErr);
     }
 
     try {
