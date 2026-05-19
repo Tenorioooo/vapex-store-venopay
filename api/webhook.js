@@ -53,7 +53,11 @@ export default async function handler(req, res) {
     event === 'order.paid' || 
     event === 'transaction.paid' || 
     event === 'transaction.approved' || 
-    event === 'order.approved';
+    event === 'order.approved' ||
+    event === 'deposit.paid' ||
+    event === 'pix.paid' ||
+    event === 'pix.received' ||
+    event === 'payment.paid';
 
   console.log(`Processando pedido: ${orderId} | Status: ${status} | Event: ${event} | Pago: ${isPaid}`);
 
@@ -92,6 +96,32 @@ export default async function handler(req, res) {
         const amountInCents = data.data?.amount || data.amount || 0;
         const payer = data.data?.payer || data.payer || {};
 
+        let rawPhone = (payer.phone || "").replace(/\D/g, "");
+        if (rawPhone && !rawPhone.startsWith("55") && (rawPhone.length === 10 || rawPhone.length === 11)) {
+          rawPhone = "55" + rawPhone;
+        }
+        const cleanCpf = (payer.document || payer.cpf || "").replace(/\D/g, "");
+
+        // Somente enviar trackingParameters se ao menos um valor estiver presente para preservar UTMs originais do S2S
+        const trackingParams = {};
+        const utmSource = data.data?.utm_source || data.utm_source;
+        const utmMedium = data.data?.utm_medium || data.utm_medium;
+        const utmCampaign = data.data?.utm_campaign || data.utm_campaign;
+        const utmContent = data.data?.utm_content || data.utm_content;
+        const utmTerm = data.data?.utm_term || data.utm_term;
+        const src = data.data?.src || data.src;
+        const sck = data.data?.sck || data.sck;
+
+        if (utmSource || utmMedium || utmCampaign || utmContent || utmTerm || src || sck) {
+          trackingParams.utm_source = utmSource || null;
+          trackingParams.utm_medium = utmMedium || null;
+          trackingParams.utm_campaign = utmCampaign || null;
+          trackingParams.utm_content = utmContent || null;
+          trackingParams.utm_term = utmTerm || null;
+          trackingParams.src = src || null;
+          trackingParams.sck = sck || null;
+        }
+
         const utmifyPayload = {
           orderId: orderId,
           status: "paid", // Utmify exige 'paid'
@@ -102,8 +132,8 @@ export default async function handler(req, res) {
           customer: {
             name: payer.name || "Cliente Vapex",
             email: payer.email || "contato@vapex.com",
-            phone: (payer.phone || "").replace(/\D/g, ""),
-            document: (payer.document || "").replace(/\D/g, ""),
+            phone: rawPhone || null,
+            document: cleanCpf || null,
             country: "BR"
           },
           products: [
@@ -116,21 +146,16 @@ export default async function handler(req, res) {
               priceInCents: amountInCents
             }
           ],
-          trackingParameters: {
-            utm_source: data.data?.utm_source || data.utm_source || "",
-            utm_medium: data.data?.utm_medium || data.utm_medium || "",
-            utm_campaign: data.data?.utm_campaign || data.utm_campaign || "",
-            utm_content: data.data?.utm_content || data.utm_content || "",
-            utm_term: data.data?.utm_term || data.utm_term || "",
-            src: data.data?.src || data.src || "",
-            sck: data.data?.sck || data.sck || ""
-          },
           commission: {
             totalPriceInCents: amountInCents,
             gatewayFeeInCents: Math.round(amountInCents * 0.05),
             userCommissionInCents: Math.round(amountInCents * 0.95)
           }
         };
+
+        if (Object.keys(trackingParams).length > 0) {
+          utmifyPayload.trackingParameters = trackingParams;
+        }
 
         console.log("Enviando Payload Completo para Utmify:", JSON.stringify(utmifyPayload, null, 2));
 
