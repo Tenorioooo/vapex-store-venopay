@@ -39,8 +39,8 @@ export default async function handler(req, res) {
         customer: {
           name: name || "Cliente Vapex",
           email: email || "cliente@vapex.com",
-          phone: phone ? phone.replace(/\D/g, "") : "",
-          document: cpf ? cpf.replace(/\D/g, "") : "",
+          phone: rawPhone || "",
+          document: cleanCpf || "",
           country: "BR"
         },
         products: [
