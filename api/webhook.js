@@ -130,8 +130,8 @@ export default async function handler(req, res) {
           customer: {
             name: payer.name || "Cliente Vapex",
             email: payer.email || "contato@vapex.com",
-            phone: rawPhone || null,
-            document: cleanCpf || null,
+            phone: rawPhone || undefined,
+            document: cleanCpf || undefined,
             country: "BR"
           },
           products: [

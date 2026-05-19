@@ -17,6 +17,12 @@ export default async function handler(req, res) {
     const orderReference = referenceId || `PEDIDO-${Date.now()}`;
     const amountInCents = Math.round(amount * 100);
 
+    let rawPhone = phone ? phone.replace(/\D/g, "") : "";
+    if (rawPhone && !rawPhone.startsWith("55") && (rawPhone.length === 10 || rawPhone.length === 11)) {
+      rawPhone = "55" + rawPhone;
+    }
+    const cleanCpf = cpf ? cpf.replace(/\D/g, "") : "";
+
     // Prepara chamadas em paralelo para evitar Timeout na Vercel (10s limit)
     const promises = [];
 
@@ -31,10 +37,10 @@ export default async function handler(req, res) {
         approvedDate: null,
         refundedAt: null,
         customer: {
-          name: name,
-          email: email,
-          phone: phone ? phone.replace(/\D/g, "") : "",
-          document: cpf ? cpf.replace(/\D/g, "") : "",
+          name: name || "Cliente Vapex",
+          email: email || "cliente@vapex.com",
+          phone: rawPhone || undefined,
+          document: cleanCpf || undefined,
           country: "BR"
         },
         products: [
