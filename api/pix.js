@@ -39,13 +39,13 @@ export default async function handler(req, res) {
         customer: {
           name: name || "Cliente Vapex",
           email: email || "cliente@vapex.com",
-          phone: rawPhone || undefined,
-          document: cleanCpf || undefined,
+          phone: phone ? phone.replace(/\D/g, "") : "",
+          document: cpf ? cpf.replace(/\D/g, "") : "",
           country: "BR"
         },
         products: [
           {
-            id: "vapex-item", // ID consistente com o webhook de aprovação para garantir match perfeito na Utmify
+            id: productName || "vapex-item",
             name: productName || "Produto Vapex",
             planId: null,
             planName: null,
