@@ -41,7 +41,7 @@ export default function CheckoutPage() {
 
     const intervalId = setInterval(async () => {
       try {
-        const res = await fetch(`/api/check-payment?transactionId=${pixData.transaction_id}&orderId=${orderId}&amount=${finalTotal - pixDiscount}`);
+        const res = await fetch(`/api/check-payment?transactionId=${pixData.transaction_id}&orderId=${orderId}&amount=${finalTotal - pixDiscount}&phone=${encodeURIComponent(form.phone)}&email=${encodeURIComponent(form.email)}&name=${encodeURIComponent(form.name)}&cpf=${encodeURIComponent(form.cpf)}`);
         if (res.ok) {
           const checkData = await res.json();
           if (checkData.approved) {
@@ -60,7 +60,7 @@ export default function CheckoutPage() {
     if (!pixData?.transaction_id || !orderId) return;
     setCheckingPayment(true);
     try {
-      const res = await fetch(`/api/check-payment?transactionId=${pixData.transaction_id}&orderId=${orderId}&amount=${finalTotal - pixDiscount}`);
+      const res = await fetch(`/api/check-payment?transactionId=${pixData.transaction_id}&orderId=${orderId}&amount=${finalTotal - pixDiscount}&phone=${encodeURIComponent(form.phone)}&email=${encodeURIComponent(form.email)}&name=${encodeURIComponent(form.name)}&cpf=${encodeURIComponent(form.cpf)}`);
       if (res.ok) {
         const checkData = await res.json();
         if (checkData.approved) {
