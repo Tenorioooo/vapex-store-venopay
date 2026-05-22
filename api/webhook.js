@@ -18,6 +18,7 @@ export default async function handler(req, res) {
     isPaidChecked: false,
     utmifyCalled: false,
     utmifyResult: null,
+    utmifyPayloadSent: null,
     dialogCalled: false,
     dialogResult: null,
     error: null
@@ -153,11 +154,13 @@ export default async function handler(req, res) {
             }
           ],
           trackingParameters: {
-            utm_source: data.utm_source || "",
-            utm_medium: data.utm_medium || "",
-            utm_campaign: data.utm_campaign || "",
-            utm_content: data.utm_content || "",
-            utm_term: data.utm_term || ""
+            utm_source: data.utm_source || data.data?.utm_source || "",
+            utm_medium: data.utm_medium || data.data?.utm_medium || "",
+            utm_campaign: data.utm_campaign || data.data?.utm_campaign || "",
+            utm_content: data.utm_content || data.data?.utm_content || "",
+            utm_term: data.utm_term || data.data?.utm_term || "",
+            src: data.src || data.data?.src || "",
+            sck: data.sck || data.data?.sck || ""
           },
           commission: {
             totalPriceInCents: amountInCents,
@@ -165,6 +168,8 @@ export default async function handler(req, res) {
             userCommissionInCents: Math.round(amountInCents * 0.95)
           }
         };
+
+        logEntry.utmifyPayloadSent = utmifyPayload;
 
         console.log("Enviando Payload Completo para Utmify:", JSON.stringify(utmifyPayload, null, 2));
 

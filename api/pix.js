@@ -79,9 +79,12 @@ export default async function handler(req, res) {
       promises.push(utmifyPromise);
     }
 
-    // 2. Promise do VenoPay
-    // Garante que o callback de webhook sempre vá para o domínio de produção oficial para evitar desvios em URLs de preview/staging da Vercel
-    const callbackUrl = 'https://vapexstore.vercel.app/api/webhook';
+    // Garante que o callback de webhook sempre vá para o domínio correto
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers.host;
+    const callbackUrl = `${protocol}://${host}/api/webhook`;
+    console.log(`[PIX] Usando Callback URL: ${callbackUrl}`);
+
 
     const venoPayload = {
       amount: amountInCents,
@@ -103,6 +106,7 @@ export default async function handler(req, res) {
       sck: trackingParameters?.sck || undefined
     };
 
+    console.log(`[PIX] Enviando payload para Veno:`, JSON.stringify(venoPayload, null, 2));
     const venoPromise = fetch("https://beta.venopayments.com/api/v1/pix", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
