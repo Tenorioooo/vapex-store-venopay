@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, Heart, ShoppingBag, Menu, X, ChevronDown, Settings } from 'lucide-react';
+import { Search, User, Heart, ShoppingBag, Menu, X, Settings } from 'lucide-react';
 import { useCart } from './CartContext';
 import { useAuth } from '../../hooks/useSupabase';
 import Logo from '../ui/Logo';
@@ -40,11 +40,11 @@ export default function Header() {
 
   return (
     <>
-      <div className="bg-[#0a0a0a] text-center text-xs text-gray-400 py-1.5 border-b border-white/5">
+      <div className="mt-[40px] bg-[#0a0a0a] text-center text-xs text-gray-400 py-1.5 border-b border-white/5">
         Venda proibida para menores de 18 anos
       </div>
       <header className={`fixed left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled ? 'top-0 bg-[#0a0a0a]/95 backdrop-blur-2xl shadow-lg shadow-black/40 border-b border-white/10' : 'top-[30px] bg-transparent'
+        scrolled ? 'top-[40px] bg-[#0a0a0a]/95 backdrop-blur-2xl shadow-lg shadow-black/40 border-b border-white/10' : 'top-[70px] bg-transparent'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">

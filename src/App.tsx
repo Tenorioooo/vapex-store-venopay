@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop';
 import { CartProvider } from './components/layout/CartContext';
 import Header from './components/layout/Header';
+import TopCountdownBanner from './components/layout/TopCountdownBanner';
 import Footer from './components/layout/Footer';
 import HomePage from './pages/HomePage';
 import ProductsPage from './pages/ProductsPage';
@@ -56,6 +57,7 @@ function App() {
       <MetaPixelTracker />
       <CartProvider>
         <div className="min-h-screen bg-[#050505] text-white">
+          <TopCountdownBanner />
           <Header />
           <Routes>
             <Route path="/" element={<HomePage />} />
