@@ -161,7 +161,9 @@ export default async function handler(req, res) {
               utm_medium: req.query.utm_medium || "",
               utm_campaign: req.query.utm_campaign || "",
               utm_content: req.query.utm_content || "",
-              utm_term: req.query.utm_term || ""
+              utm_term: req.query.utm_term || "",
+              src: req.query.src || "",
+              sck: req.query.sck || ""
             },
             commission: {
               totalPriceInCents: amountInCents,
