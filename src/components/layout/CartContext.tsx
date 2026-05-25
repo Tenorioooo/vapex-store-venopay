@@ -73,19 +73,37 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Preço total sem descontos
   const subtotal = items.reduce((sum, i) => sum + (i.product?.price ?? 0) * i.quantity, 0);
   
-  // Preço total com a promoção Compre 1 Leve 2
-  const total = items.reduce((sum, i) => {
-    const price = i.product?.price ?? 0;
-    const isPromo = i.product?.category_id === 'pods-descartaveis' || i.product?.category_id === 'pods-recarregaveis';
-    
-    if (isPromo) {
-      // Promoção Compre 1 Leve 2: Para cada 2 itens, paga apenas 1
-      const paidQuantity = Math.ceil(i.quantity / 2);
-      return sum + (price * paidQuantity);
+  // Preço total com a promoção Compre 1 Leve 2 (Mix & Match)
+  const total = (() => {
+    let regularTotal = 0;
+    let promoPrices: number[] = [];
+
+    items.forEach(i => {
+      const price = i.product?.price ?? 0;
+      const isPromo = i.product?.category_id === 'pods-descartaveis' || i.product?.category_id === 'pods-recarregaveis';
+      
+      if (isPromo) {
+        for (let j = 0; j < i.quantity; j++) {
+          promoPrices.push(price);
+        }
+      } else {
+        regularTotal += price * i.quantity;
+      }
+    });
+
+    // Ordena do mais caro para o mais barato
+    promoPrices.sort((a, b) => b - a);
+
+    // Para cada 2 itens, o primeiro é pago e o segundo é grátis (paga sempre os mais caros)
+    let promoTotal = 0;
+    for (let i = 0; i < promoPrices.length; i++) {
+      if (i % 2 === 0) {
+        promoTotal += promoPrices[i];
+      }
     }
-    
-    return sum + price * i.quantity;
-  }, 0);
+
+    return regularTotal + promoTotal;
+  })();
 
   return (
     <CartContext.Provider value={{ items, itemCount, total, subtotal, loading: false, isCartOpen, setCartOpen, addItem, removeItem, updateQuantity, clearCart }}>

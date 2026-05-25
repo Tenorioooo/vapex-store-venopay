@@ -5,6 +5,7 @@ import { Star, ShoppingBag, Heart, Truck, Shield, CreditCard, ChevronRight, Minu
 import type { Product, Review } from '../types';
 import { useCart } from '../components/layout/CartContext';
 import ProductImage from '../components/ui/ProductImage';
+import ShippingCalculator from '../components/ui/ShippingCalculator';
 import { MOCK_PRODUCTS } from '../data/MOCK_PRODUCTS';
 import { generateReviews, type GeneratedReview } from '../data/generateReviews';
 
@@ -252,6 +253,8 @@ export default function ProductDetailPage() {
                 <Heart size={20} />
               </button>
             </div>
+            
+            <ShippingCalculator />
 
             {/* Quick benefits */}
             <div className="grid grid-cols-3 gap-3">

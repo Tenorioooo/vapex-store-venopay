@@ -15,6 +15,10 @@ import InfoPage from './pages/InfoPage';
 import TrackOrderPage from './pages/TrackOrderPage';
 import { initMetaPixel, pixelPageView } from './lib/metaPixel';
 
+import AgeVerificationPopup from './components/ui/AgeVerificationPopup';
+import SalesPopup from './components/ui/SalesPopup';
+import WhatsAppButton from './components/ui/WhatsAppButton';
+
 import { useEffect } from 'react';
 
 /** Dispara PageView do Meta Pixel em cada mudança de rota */
@@ -52,6 +56,9 @@ function App() {
     <BrowserRouter>
       <ScrollToTop />
       <MetaPixelTracker />
+      <AgeVerificationPopup />
+      <SalesPopup />
+      <WhatsAppButton />
       <CartProvider>
         <div className="min-h-screen bg-[#050505] text-white">
           <TopCountdownBanner />

@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import ProductImage from '../ui/ProductImage';
 
 export default function CartDrawer() {
-  const { isCartOpen, setCartOpen, items, total, updateQuantity, removeItem } = useCart();
+  const { isCartOpen, setCartOpen, items, total, subtotal, updateQuantity, removeItem } = useCart();
   const navigate = useNavigate();
 
   const handleCheckout = () => {
@@ -117,8 +117,20 @@ export default function CartDrawer() {
             {/* Footer */}
             {items.length > 0 && (
               <div className="p-6 bg-[#0d0d0d] border-t border-white/5 space-y-4">
+                {subtotal > total && (
+                  <div className="space-y-2 mb-3 pb-3 border-b border-white/5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-400">Subtotal</span>
+                      <span className="text-gray-400">R$ {subtotal.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-cyan-400 font-medium">Promoção Compre 1 Leve 2</span>
+                      <span className="text-cyan-400 font-bold">-R$ {(subtotal - total).toFixed(2).replace('.', ',')}</span>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Total</span>
+                  <span className="text-gray-400">Total com desconto</span>
                   <span className="text-2xl font-bold text-white">R$ {total.toFixed(2).replace('.', ',')}</span>
                 </div>
                 <p className="text-[10px] text-gray-500 text-center">

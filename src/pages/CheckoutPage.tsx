@@ -164,7 +164,8 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const shipping: number = 0;
+  const isCepValid = form.cep.replace(/\D/g, '').length === 8;
+  const shipping: number = isCepValid ? (total >= 300 ? 0 : 19.90) : 0;
   const promoDiscount = subtotal - total;
   
   // Master Key para testes do dono
@@ -498,8 +499,8 @@ export default function CheckoutPage() {
                   </div>
                 )}
                 <div className="flex justify-between text-gray-400">
-                  <span>Frete</span>
-                  <span>{shipping === 0 ? <span className="text-emerald-400">Grátis</span> : `R$ ${shipping.toFixed(2).replace('.', ',')}`}</span>
+                  <span>Frete {isCepValid && '(Sedex Expresso)'}</span>
+                  <span>{!isCepValid ? '-' : shipping === 0 ? <span className="text-emerald-400">Grátis</span> : `R$ ${shipping.toFixed(2).replace('.', ',')}`}</span>
                 </div>
                 <div className="border-t border-white/5 pt-2 flex justify-between text-white font-bold text-lg">
                   <span>Total Estimado</span>
@@ -586,8 +587,8 @@ export default function CheckoutPage() {
                   </div>
                 )}
                 <div className="flex justify-between text-gray-400">
-                  <span>Frete</span>
-                  <span>{shipping === 0 ? <span className="text-emerald-400">Grátis</span> : `R$ ${shipping.toFixed(2).replace('.', ',')}`}</span>
+                  <span>Frete {isCepValid && '(Sedex Expresso)'}</span>
+                  <span>{!isCepValid ? '-' : shipping === 0 ? <span className="text-emerald-400">Grátis</span> : `R$ ${shipping.toFixed(2).replace('.', ',')}`}</span>
                 </div>
                 {paymentMethod === 'pix' && !isMasterAdmin && (
                   <div className="flex justify-between text-cyan-400">
