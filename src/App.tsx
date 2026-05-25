@@ -12,6 +12,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import SearchPage from './pages/SearchPage';
 import NewArrivalsPage from './pages/NewArrivalsPage';
 import InfoPage from './pages/InfoPage';
+import TrackOrderPage from './pages/TrackOrderPage';
 import { initMetaPixel, pixelPageView } from './lib/metaPixel';
 
 import { useEffect } from 'react';
@@ -64,6 +65,7 @@ function App() {
             <Route path="/termos" element={<InfoPage />} />
             <Route path="/trocas" element={<InfoPage />} />
             <Route path="/faq" element={<InfoPage />} />
+            <Route path="/rastrear" element={<TrackOrderPage />} />
             <Route path="/categoria/:slug" element={<ProductsPage />} />
             <Route path="/produto/:slug" element={<ProductDetailPage />} />
             <Route path="/carrinho" element={<CartPage />} />

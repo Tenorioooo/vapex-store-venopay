@@ -10,6 +10,7 @@ const footerLinks = {
     { label: 'Juice', href: '/categoria/essencias' },
   ],
   institucional: [
+    { label: 'Rastrear Pedido', href: '/rastrear' },
     { label: 'Sobre Nós', href: '/sobre' },
     { label: 'Política de Privacidade', href: '/privacidade' },
     { label: 'Termos de Uso', href: '/termos' },
