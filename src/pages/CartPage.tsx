@@ -3,41 +3,39 @@ import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag } from 'lucide-react';
 import { useCart } from '../components/layout/CartContext';
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
 import ProductImage from '../components/ui/ProductImage';
 
+const MOCK_COUPONS = [
+  { code: 'VAPEX10', discount_percent: 10 },
+  { code: 'WELCOME5', discount_percent: 5 },
+  { code: 'VIP15', discount_percent: 15 },
+];
+
 export default function CartPage() {
-  const { items, total, subtotal, removeItem, updateQuantity, clearCart } = useCart();
+  const { items, total, subtotal, removeItem, updateQuantity } = useCart();
   const [coupon, setCoupon] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
 
-  const shipping = 0;
+  const shipping: number = 0;
   const promoDiscount = subtotal - total;
   const finalTotal = total - couponDiscount + shipping;
 
-  const handleCoupon = async () => {
+  const handleCoupon = () => {
     setCouponError('');
     setCouponSuccess('');
     if (!coupon.trim()) return;
 
-    const { data } = await supabase.from('coupons').select('*').eq('code', coupon.toUpperCase()).eq('is_active', true).maybeSingle();
-    if (!data) {
+    const matched = MOCK_COUPONS.find(c => c.code === coupon.toUpperCase().trim());
+    if (!matched) {
       setCouponError('Cupom inválido');
       return;
     }
-    if (data.expires_at && new Date(data.expires_at) < new Date()) {
-      setCouponError('Cupom expirado');
-      return;
-    }
-    if (data.max_uses && data.uses_count >= data.max_uses) {
-      setCouponError('Cupom esgotado');
-      return;
-    }
-    const disc = (total * data.discount_percent) / 100;
+
+    const disc = (total * matched.discount_percent) / 100;
     setCouponDiscount(disc);
-    setCouponSuccess(`Cupom aplicado! ${data.discount_percent}% de desconto`);
+    setCouponSuccess(`Cupom aplicado! ${matched.discount_percent}% de desconto`);
   };
 
   if (items.length === 0) {

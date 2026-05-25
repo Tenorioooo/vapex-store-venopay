@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, ShoppingBag, Grid3x3 as Grid3X3, LayoutList, SlidersHorizontal, ChevronRight } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import type { Product, Category } from '../types';
 import { useCart } from '../components/layout/CartContext';
 import { MOCK_PRODUCTS } from '../data/MOCK_PRODUCTS';
@@ -12,7 +11,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [category, setCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState('created_at');
+  const [sortBy] = useState('created_at');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const { addItem } = useCart();
@@ -24,48 +23,31 @@ export default function ProductsPage() {
 
   useEffect(() => {
     setLoading(true);
-    async function fetchData() {
-      // 1. Definir categoria se houver slug
-      let categoryId = '';
-      if (slug) {
-        const { data: catData } = await supabase.from('categories').select('*').eq('slug', slug).maybeSingle();
-        setCategory(catData);
-        categoryId = catData?.id || slug;
-      } else {
-        setCategory(null);
-      }
+    // Categorias mockadas caso precise do nome
+    const mockCategories: Record<string, string> = {
+      'pods-descartaveis': 'Pods Descartáveis',
+      'pods-recarregaveis': 'Life Pod',
+      'pod-system': 'Pod System',
+      'essencias': 'Essências/Juices'
+    };
 
-      // 2. Buscar produtos (Supabase + Mock)
-      try {
-        let query = supabase.from('products').select('*');
-        if (categoryId) query = query.eq('category_id', categoryId);
-        const { data: dbData } = await query;
-        
-        const dbProducts = (dbData as Product[]) || [];
-        const mockFiltered = categoryId 
-          ? MOCK_PRODUCTS.filter(p => p.category_id === categoryId || p.category_id === slug)
-          : MOCK_PRODUCTS;
-
-        const combined = [...dbProducts];
-        mockFiltered.forEach(mp => {
-          if (!combined.find(p => String(p.id) === String(mp.id))) {
-            combined.push(mp);
-          }
-        });
-
-        setProducts(combined);
-      } catch (err) {
-        setProducts(MOCK_PRODUCTS.filter(p => !slug || p.category_id === slug));
-      } finally {
-        setLoading(false);
-      }
+    if (slug) {
+      setCategory({ id: slug, name: mockCategories[slug] || slug, slug } as Category);
+    } else {
+      setCategory(null);
     }
-    fetchData();
+
+    const filtered = slug 
+      ? MOCK_PRODUCTS.filter(p => p.category_id === slug)
+      : MOCK_PRODUCTS;
+
+    setProducts(filtered);
+    setLoading(false);
   }, [slug]);
 
   // Lógica de filtragem e ordenação
   const processedProducts = useMemo(() => {
-    let result = products.filter(p => {
+    const result = products.filter(p => {
       const matchBrand = selectedBrands.length === 0 || selectedBrands.includes(p.brand);
       const matchPrice = p.price <= maxPrice;
       const matchStock = !onlyInStock || p.in_stock !== false;

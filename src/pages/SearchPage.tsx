@@ -1,17 +1,15 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, ShoppingBag, Star, SlidersHorizontal, X } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { Search, ShoppingBag, Star, SlidersHorizontal } from 'lucide-react';
 import type { Product } from '../types';
 import { useCart } from '../components/layout/CartContext';
 import { MOCK_PRODUCTS } from '../data/MOCK_PRODUCTS';
 
 export default function SearchPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const q = searchParams.get('q') || '';
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const { addItem } = useCart();
 
@@ -21,38 +19,15 @@ export default function SearchPage() {
   const [onlyInStock, setOnlyInStock] = useState(false);
 
   useEffect(() => {
-    async function performSearch() {
-      if (!q) { setLoading(false); return; }
-      setLoading(true);
+    if (!q) return;
 
-      const searchTerm = q.toLowerCase();
-      const mockResults = MOCK_PRODUCTS.filter(p => 
-        (p.name?.toLowerCase() || '').includes(searchTerm) ||
-        (p.brand?.toLowerCase() || '').includes(searchTerm)
-      );
+    const searchTerm = q.toLowerCase();
+    const mockResults = MOCK_PRODUCTS.filter(p => 
+      (p.name?.toLowerCase() || '').includes(searchTerm) ||
+      (p.brand?.toLowerCase() || '').includes(searchTerm)
+    );
 
-      try {
-        const { data: dbData } = await supabase
-          .from('products')
-          .select('*')
-          .or(`name.ilike.%${q}%,brand.ilike.%${q}%`)
-          .limit(50);
-
-        const dbProducts = (dbData as Product[]) || [];
-        const combined = [...mockResults];
-        dbProducts.forEach(dbp => {
-          if (!combined.find(p => String(p.id) === String(dbp.id))) {
-            combined.push(dbp);
-          }
-        });
-        setProducts(combined);
-      } catch (err) {
-        setProducts(mockResults);
-      } finally {
-        setLoading(false);
-      }
-    }
-    performSearch();
+    setProducts(mockResults);
   }, [q]);
 
   // Lógica de filtragem local (rápida e funcional)

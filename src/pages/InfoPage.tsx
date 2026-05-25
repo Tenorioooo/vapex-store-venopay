@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronRight, Shield, Truck, HelpCircle, Info, FileText } from 'lucide-react';
 

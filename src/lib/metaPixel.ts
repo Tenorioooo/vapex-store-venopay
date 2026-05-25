@@ -25,11 +25,13 @@ export function initMetaPixel(): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fbq: any = function (...args: unknown[]) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (fbq as any).callMethod
-      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (fbq as any).callMethod(...args)
-      : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (fbq as any).queue.push(args);
+    if ((fbq as any).callMethod) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (fbq as any).callMethod(...args);
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (fbq as any).queue.push(args);
+    }
   };
 
   if (!window._fbq) window._fbq = fbq;

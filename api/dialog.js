@@ -1,5 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
 const supabase = null; // Desativado conforme solicitação do cliente (não utiliza Supabase)
 
 async function getWebhookUrl() {

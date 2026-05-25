@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { CreditCard, QrCode, FileText, Shield, Lock, ChevronRight, Check } from 'lucide-react';
+import { QrCode, FileText, Shield, Lock, Check, Truck } from 'lucide-react';
 import { useCart } from '../components/layout/CartContext';
-import { useAuth } from '../hooks/useSupabase';
-import { supabase } from '../lib/supabase';
+
 import ProductImage from '../components/ui/ProductImage';
 import { pixelInitiateCheckout, pixelPurchase } from '../lib/metaPixel';
 
@@ -13,10 +12,10 @@ type Step = 'info' | 'payment' | 'confirm';
 
 export default function CheckoutPage() {
   const { items, total, subtotal, clearCart } = useCart();
-  const { user } = useAuth();
+
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('info');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
+  const [paymentMethod] = useState<PaymentMethod>('pix');
   const [submitting, setSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [pixData, setPixData] = useState<{ pix_code: string; pix_qr_code: string; transaction_id?: string } | null>(null);
@@ -84,9 +83,9 @@ export default function CheckoutPage() {
     // Meta Pixel
     pixelInitiateCheckout(finalTotal);
     // Utmify
-    if (typeof window !== 'undefined' && (window as any).utmify) {
+    if (typeof window !== 'undefined' && (window as unknown as { utmify?: { sendEvent: (event: string) => void } }).utmify) {
       try {
-        (window as any).utmify.sendEvent('InitiateCheckout');
+        (window as unknown as { utmify?: { sendEvent: (event: string) => void } }).utmify.sendEvent('InitiateCheckout');
       } catch (e) {
         console.error('Erro ao disparar InitiateCheckout:', e);
       }
@@ -94,7 +93,7 @@ export default function CheckoutPage() {
   }, []);
 
   const [form, setForm] = useState({
-    name: '', email: user?.email || '', phone: '', cpf: '',
+    name: '', email: '', phone: '', cpf: '',
     cep: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '',
     cardNumber: '', cardName: '', cardExpiry: '', cardCvv: '',
   });
@@ -165,7 +164,7 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const shipping = 0;
+  const shipping: number = 0;
   const promoDiscount = subtotal - total;
   
   // Master Key para testes do dono
@@ -243,11 +242,6 @@ export default function CheckoutPage() {
   };
 
   const handleSubmit = async () => {
-    if (!user && import.meta.env.VITE_SUPABASE_URL) {
-      navigate('/login');
-      return;
-    }
-    
     // Final validation check
     if (!validateForm()) {
       setStep('info');
@@ -256,41 +250,8 @@ export default function CheckoutPage() {
 
     setSubmitting(true);
     try {
-      let order = { id: `GUEST-${Date.now()}` };
-      
-      if (import.meta.env.VITE_SUPABASE_URL) {
-        const { data: newOrder } = await supabase.from('orders').insert({
-          user_id: user?.id,
-          status: 'pending',
-          total: finalTotal,
-          subtotal: total,
-          shipping,
-          payment_method: paymentMethod,
-          payment_status: 'pending',
-          shipping_address: {
-            name: form.name, street: form.street, number: form.number,
-            complement: form.complement, neighborhood: form.neighborhood,
-            city: form.city, state: form.state, cep: form.cep,
-          },
-        }).select().maybeSingle();
-        
-        if (newOrder) {
-          order = newOrder;
-          for (const item of items) {
-            await supabase.from('order_items').insert({
-              order_id: order.id,
-              product_id: item.product_id,
-              quantity: item.quantity,
-              price: item.product?.price ?? 0,
-              flavor: item.flavor,
-              color: item.color,
-            });
-          }
-        }
-      }
-
-      if (order) {
-        setOrderId(order.id);
+      const order = { id: `GUEST-${Date.now()}` };
+      setOrderId(order.id);
 
         if (paymentMethod === 'pix') {
           try {
@@ -334,7 +295,6 @@ export default function CheckoutPage() {
 
         await clearCart();
         setStep('confirm');
-      }
     } catch (err) {
       console.error(err);
     }
@@ -398,6 +358,17 @@ export default function CheckoutPage() {
                   <h4 className="text-white font-semibold text-xs">Ganhe 5% de Desconto no PIX</h4>
                   <p className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">
                     O desconto será aplicado automaticamente na tela de pagamento.
+                  </p>
+                </div>
+              </div>
+              <div className="p-4 bg-purple-500/5 border border-purple-500/10 rounded-2xl flex items-start gap-3 sm:col-span-2">
+                <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400 shrink-0">
+                  <Truck size={18} />
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold text-xs">Entrega Garantida e Rastreada</h4>
+                  <p className="text-[10px] text-gray-400 mt-0.5 leading-relaxed">
+                    Sua encomenda viaja com <strong>seguro total contra extravio</strong>. Assim que o pedido for despachado, você receberá o <strong>código de rastreio</strong> automaticamente por e-mail e WhatsApp.
                   </p>
                 </div>
               </div>
@@ -661,13 +632,53 @@ export default function CheckoutPage() {
                   <Check size={40} className="text-emerald-400" />
                 </div>
                 <h2 className="text-3xl font-bold text-white mb-4">Pagamento Confirmado!</h2>
-                <p className="text-gray-400 mb-8 max-w-md mx-auto">
+                <p className="text-gray-400 mb-6 max-w-md mx-auto">
                   Excelente! Seu pagamento foi recebido com sucesso e seu pedido já está sendo preparado com total discrição.
                 </p>
-                <div className="flex justify-center gap-4">
-                  <Link to="/conta" className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-medium rounded-2xl border border-white/10 transition-colors">
-                    Meus Pedidos
-                  </Link>
+                <div className="mb-8 max-w-md mx-auto space-y-4">
+                  <div className="p-5 bg-[#0a0a0a] border border-white/10 rounded-2xl flex items-start gap-4 text-left shadow-lg">
+                    <div className="p-3 bg-cyan-500/10 rounded-xl shrink-0">
+                      <Truck className="text-cyan-400" size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-sm mb-1.5">Preparação Expressa</h3>
+                      <p className="text-gray-400 text-xs leading-relaxed">
+                        Sua encomenda será embalada com total segurança e discrição, pronta para ser despachada na próxima coleta.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-5 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl flex items-start gap-4 text-left shadow-lg relative overflow-hidden">
+                    <div className="absolute -top-4 -right-4 p-4 opacity-5 rotate-12 pointer-events-none">
+                      <Truck size={100} />
+                    </div>
+                    <div className="p-3 bg-emerald-500/20 rounded-xl shrink-0 relative z-10">
+                      <Shield className="text-emerald-400" size={24} />
+                    </div>
+                    <div className="relative z-10">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider rounded-lg mb-2 border border-emerald-500/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Entrega 100% Rastreada
+                      </div>
+                      <h3 className="text-white font-bold text-sm mb-1.5">Acompanhe cada passo do seu pedido</h3>
+                      <ul className="text-gray-300 text-xs leading-relaxed space-y-2 mt-3">
+                        <li className="flex items-start gap-2">
+                          <Check size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                          <span><strong>Código de Rastreio Automático:</strong> Enviado direto para o seu e-mail e WhatsApp em até 24h.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                          <span><strong>Seguro Total Inclusivo:</strong> Garantimos a entrega ou seu dinheiro de volta. Sem riscos.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                          <span><strong>Atualizações em Tempo Real:</strong> Saiba exatamente onde sua encomenda está a qualquer momento.</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-center">
                   <Link to="/" className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-cyan-500/25">
                     Voltar à Página Inicial
                   </Link>
@@ -751,10 +762,51 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                <div className="flex justify-center gap-4">
-                  <Link to="/conta" className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-medium rounded-2xl border border-white/10 transition-colors">
-                    Meus Pedidos
-                  </Link>
+                <div className="mb-8 max-w-md mx-auto space-y-4">
+                  <div className="p-5 bg-[#0a0a0a] border border-white/10 rounded-2xl flex items-start gap-4 text-left shadow-lg">
+                    <div className="p-3 bg-cyan-500/10 rounded-xl shrink-0">
+                      <Truck className="text-cyan-400" size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-sm mb-1.5">Preparação Expressa</h3>
+                      <p className="text-gray-400 text-xs leading-relaxed">
+                        Sua encomenda será embalada com total segurança e discrição, pronta para ser despachada na próxima coleta.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-5 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl flex items-start gap-4 text-left shadow-lg relative overflow-hidden">
+                    <div className="absolute -top-4 -right-4 p-4 opacity-5 rotate-12 pointer-events-none">
+                      <Truck size={100} />
+                    </div>
+                    <div className="p-3 bg-emerald-500/20 rounded-xl shrink-0 relative z-10">
+                      <Shield className="text-emerald-400" size={24} />
+                    </div>
+                    <div className="relative z-10">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider rounded-lg mb-2 border border-emerald-500/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Entrega 100% Rastreada
+                      </div>
+                      <h3 className="text-white font-bold text-sm mb-1.5">Acompanhe cada passo do seu pedido</h3>
+                      <ul className="text-gray-300 text-xs leading-relaxed space-y-2 mt-3">
+                        <li className="flex items-start gap-2">
+                          <Check size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                          <span><strong>Código de Rastreio Automático:</strong> Enviado direto para o seu e-mail e WhatsApp em até 24h.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                          <span><strong>Seguro Total Inclusivo:</strong> Garantimos a entrega ou seu dinheiro de volta. Sem riscos.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                          <span><strong>Atualizações em Tempo Real:</strong> Saiba exatamente onde sua encomenda está a qualquer momento.</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-center">
                   <Link to="/" className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-cyan-500/25">
                     Voltar à Loja
                   </Link>

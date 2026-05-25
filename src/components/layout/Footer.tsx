@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Instagram, MessageCircle, Mail, Phone, Shield, Truck, CreditCard, Lock } from 'lucide-react';
+import { Instagram, Mail, Shield, Truck, Lock } from 'lucide-react';
 import Logo from '../ui/Logo';
 
 const footerLinks = {

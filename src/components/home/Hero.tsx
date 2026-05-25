@@ -1,15 +1,14 @@
+import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
 import type { Product } from '../../types';
 import { MOCK_PRODUCTS } from '../../data/MOCK_PRODUCTS';
 
 export default function Hero() {
   const [featuredProduct, setFeaturedProduct] = useState<Product | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [shuffledList, setShuffledList] = useState<Product[]>([]);
+  const indexRef = useRef(0);
 
   useEffect(() => {
     // Filtra e embaralha a lista de produtos em destaque
@@ -26,11 +25,8 @@ export default function Hero() {
     if (shuffledList.length === 0) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => {
-        const next = (prev + 1) % shuffledList.length;
-        setFeaturedProduct(shuffledList[next]);
-        return next;
-      });
+      indexRef.current = (indexRef.current + 1) % shuffledList.length;
+      setFeaturedProduct(shuffledList[indexRef.current]);
     }, 5000);
 
     return () => clearInterval(interval);

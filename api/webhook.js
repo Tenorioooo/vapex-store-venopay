@@ -1,7 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { sendDialogTracking } from './dialog.js';
 
-const supabase = null; // Desativado conforme solicitação do cliente (não utiliza Supabase)
+const supabase = null; // Desativado (não utiliza Supabase)
+
 
 global.webhookLogs = global.webhookLogs || [];
 

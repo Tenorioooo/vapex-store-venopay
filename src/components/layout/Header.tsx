@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, Heart, ShoppingBag, Menu, X, Settings } from 'lucide-react';
+import { Search, Heart, ShoppingBag, Menu, X } from 'lucide-react';
 import { useCart } from './CartContext';
-import { useAuth } from '../../hooks/useSupabase';
 import Logo from '../ui/Logo';
 import CartDrawer from './CartDrawer';
 
@@ -20,7 +19,6 @@ export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { itemCount, setCartOpen } = useCart();
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -69,17 +67,7 @@ export default function Header() {
                 className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">
                 <Search size={20} />
               </button>
-              <Link to={user ? '/conta' : '/login'}
-                className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">
-                <User size={20} />
-              </Link>
-              {user && (
-                <Link to="/admin/produtos"
-                  className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/5 hidden sm:flex"
-                  title="Admin">
-                  <Settings size={20} />
-                </Link>
-              )}
+
               <Link to="/favoritos"
                 className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/5 hidden sm:flex">
                 <Heart size={20} />
@@ -170,11 +158,8 @@ export default function Header() {
                   </Link>
                 ))}
               </nav>
+
               <div className="p-4 border-t border-white/10 space-y-1">
-                <Link to={user ? '/conta' : '/login'} onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
-                  <User size={18} /> Minha Conta
-                </Link>
                 <Link to="/favoritos" onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
                   <Heart size={18} /> Favoritos

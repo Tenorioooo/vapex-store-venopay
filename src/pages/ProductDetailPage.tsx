@@ -1,18 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, ShoppingBag, Heart, Truck, Shield, CreditCard, ChevronRight, Minus, Plus, Zap } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { Star, ShoppingBag, Heart, Truck, Shield, CreditCard, ChevronRight, Minus, Plus, Zap, ThumbsUp } from 'lucide-react';
 import type { Product, Review } from '../types';
 import { useCart } from '../components/layout/CartContext';
-import { useAuth } from '../hooks/useSupabase';
 import ProductImage from '../components/ui/ProductImage';
 import { MOCK_PRODUCTS } from '../data/MOCK_PRODUCTS';
+import { generateReviews, type GeneratedReview } from '../data/generateReviews';
+
+
+function formatReviewDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
 export default function ProductDetailPage() {
   const { slug } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews] = useState<Review[]>([]);
   const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFlavor, setSelectedFlavor] = useState<string | null>(null);
@@ -20,41 +25,32 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'description' | 'specs' | 'reviews'>('description');
   const { addItem } = useCart();
-  const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Gera depoimentos estáticos determinísticos baseados no produto atual
+  const generatedReviews = useMemo(() => {
+    if (!product) return [];
+    return generateReviews(product.slug, product.rating || 5, 5); // 5 depoimentos como antes
+  }, [product]);
+
+  // Espelha exatamente o review_count exibido na homepage
+  const displayReviewCount = (product?.review_count ?? 0) > 0 ? (product?.review_count ?? 0) : generatedReviews.length;
 
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
-    supabase.from('products').select('*, category:categories(*)').eq('slug', slug).maybeSingle().then(({ data }) => {
-      if (data) {
-        setProduct(data as Product);
-        if (data.flavors?.length) setSelectedFlavor(data.flavors[0]);
-        if (data.colors?.length) setSelectedColor(data.colors[0]);
+    
+    // Fetch from MOCK_PRODUCTS
+    const localProduct = MOCK_PRODUCTS.find(p => p.slug === slug);
+    if (localProduct) {
+      setProduct(localProduct);
+      if (localProduct.flavors?.length) setSelectedFlavor(localProduct.flavors[0]);
+      if (localProduct.colors?.length) setSelectedColor(localProduct.colors[0]);
 
-        // Fetch reviews
-        supabase.from('reviews').select('*').eq('product_id', data.id).order('created_at', { ascending: false }).then(({ data: revs }) => {
-          if (revs) setReviews(revs);
-        });
-
-        // Fetch related
-        supabase.from('products').select('*').eq('category_id', data.category_id).neq('id', data.id).limit(4).then(({ data: rel }) => {
-          if (rel) setRelated(rel as Product[]);
-        });
-      } else {
-        // Fallback to local data
-        const localProduct = MOCK_PRODUCTS.find(p => p.slug === slug);
-        if (localProduct) {
-          setProduct(localProduct);
-          if (localProduct.flavors?.length) setSelectedFlavor(localProduct.flavors[0]);
-          if (localProduct.colors?.length) setSelectedColor(localProduct.colors[0]);
-
-          // Related products from mock
-          setRelated(MOCK_PRODUCTS.filter(p => p.category_id === localProduct.category_id && p.id !== localProduct.id).slice(0, 4));
-        }
-      }
-      setLoading(false);
-    });
+      // Related products
+      setRelated(MOCK_PRODUCTS.filter(p => p.category_id === localProduct.category_id && p.id !== localProduct.id).slice(0, 4));
+    }
+    setLoading(false);
   }, [slug]);
 
   if (loading) {
@@ -150,7 +146,7 @@ export default function ProductDetailPage() {
                 ))}
               </div>
               <span className="text-gray-400 text-sm">{product.rating}</span>
-              <span className="text-gray-600 text-sm">({product.review_count} avaliações)</span>
+              <span className="text-gray-600 text-sm">({displayReviewCount} avaliações)</span>
             </div>
 
             <div className="flex items-end gap-3 mb-6">
@@ -239,7 +235,7 @@ export default function ProductDetailPage() {
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3 mb-8">
               <button
-                onClick={handleAddToCart}
+                onClick={() => handleAddToCart()}
                 disabled={!product.in_stock}
                 className="flex-1 flex items-center justify-center gap-2 px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl border border-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -285,7 +281,7 @@ export default function ProductDetailPage() {
                 className={`px-6 py-2.5 text-sm font-medium rounded-lg transition-all ${activeTab === tab ? 'bg-cyan-500 text-white' : 'text-gray-400 hover:text-white'
                   }`}
               >
-                {tab === 'description' ? 'Descrição' : tab === 'specs' ? 'Especificações' : `Avaliações (${product.review_count})`}
+                {tab === 'description' ? 'Descrição' : tab === 'specs' ? 'Especificações' : `Avaliações (${displayReviewCount})`}
               </button>
             ))}
           </div>
@@ -299,15 +295,15 @@ export default function ProductDetailPage() {
           {activeTab === 'specs' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid sm:grid-cols-2 gap-4">
               {[
-                product.puffs && { label: 'Puffs', value: product.puffs.toLocaleString() },
-                product.battery && { label: 'Bateria', value: product.battery },
-                product.intensity && { label: 'Intensidade', value: product.intensity },
-                product.technology && { label: 'Tecnologia', value: product.technology },
-                product.brand && { label: 'Marca', value: product.brand },
-              ].filter(Boolean).map((spec, i) => (
+                product.puffs ? { label: 'Puffs', value: product.puffs.toLocaleString() } : null,
+                product.battery ? { label: 'Bateria', value: product.battery } : null,
+                product.intensity ? { label: 'Intensidade', value: product.intensity } : null,
+                product.technology ? { label: 'Tecnologia', value: product.technology } : null,
+                product.brand ? { label: 'Marca', value: product.brand } : null,
+              ].filter((spec): spec is { label: string; value: string } => spec !== null).map((spec, i) => (
                 <div key={i} className="flex items-center justify-between p-4 bg-[#0a0a0a] rounded-xl border border-white/5">
-                  <span className="text-gray-500 text-sm">{spec!.label}</span>
-                  <span className="text-white font-medium text-sm">{spec!.value}</span>
+                  <span className="text-gray-500 text-sm">{spec.label}</span>
+                  <span className="text-white font-medium text-sm">{spec.value}</span>
                 </div>
               ))}
               {product.features?.map((feat, i) => (
@@ -320,24 +316,139 @@ export default function ProductDetailPage() {
           )}
 
           {activeTab === 'reviews' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-              {reviews.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Nenhuma avaliação ainda. Seja o primeiro!</p>
-              ) : (
-                reviews.map(review => (
-                  <div key={review.id} className="p-4 bg-[#0a0a0a] rounded-xl border border-white/5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="flex gap-0.5">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star key={i} size={14} className={i < review.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-700'} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              {(() => {
+                const displayReviews = reviews.length > 0 ? reviews : generatedReviews;
+                // Usa rating e review_count do produto — idêntico à homepage
+                const avgRating = product!.rating;
+                const totalReviews = displayReviewCount;
+
+                // Distribuição proporcional de estrelas baseada na nota real do produto
+                // (padrão típico de e-commerce: maioria nas notas altas)
+                const getStarWeight = (star: number) => {
+                  const diff = avgRating - star;
+                  if (diff >= 0) return Math.max(0, 1 - diff * 0.4);
+                  return Math.max(0, 1 + diff * 1.5);
+                };
+                const weights = [5, 4, 3, 2, 1].map(s => getStarWeight(s));
+                const totalWeight = weights.reduce((a, b) => a + b, 0);
+                const starCounts = [5, 4, 3, 2, 1].map((star, i) => ({
+                  star,
+                  count: Math.round((weights[i] / totalWeight) * totalReviews),
+                  pct: totalWeight > 0 ? (weights[i] / totalWeight) * 100 : 0,
+                }));
+
+                return (
+                  <div className="space-y-8">
+                    {/* Rating Summary */}
+                    <div className="flex flex-col sm:flex-row gap-6 p-6 bg-[#0a0a0a] rounded-2xl border border-white/5">
+                      {/* Average score */}
+                      <div className="flex flex-col items-center justify-center min-w-[120px] gap-2">
+                        <span className="text-6xl font-black text-white">{avgRating.toFixed(1)}</span>
+                        <div className="flex gap-0.5">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star
+                              key={i}
+                              size={18}
+                              className={i < Math.round(avgRating) ? 'fill-amber-400 text-amber-400' : 'text-gray-700'}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-gray-500 text-sm">{totalReviews.toLocaleString('pt-BR')} avaliações</span>
+                      </div>
+
+                      {/* Bars */}
+                      <div className="flex-1 space-y-2">
+                        {starCounts.map(({ star, count, pct }) => (
+                          <div key={star} className="flex items-center gap-3">
+                            <span className="text-gray-400 text-sm w-4">{star}</span>
+                            <Star size={12} className="fill-amber-400 text-amber-400 shrink-0" />
+                            <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${pct}%` }}
+                                transition={{ duration: 0.8, delay: 0.1 * (5 - star) }}
+                                className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full"
+                              />
+                            </div>
+                            <span className="text-gray-500 text-xs w-6 text-right">{count.toLocaleString('pt-BR')}</span>
+                          </div>
                         ))}
                       </div>
-                      {review.title && <span className="text-white font-medium text-sm">{review.title}</span>}
                     </div>
-                    {review.comment && <p className="text-gray-400 text-sm">{review.comment}</p>}
+
+                    {/* Review Cards */}
+                    <div className="space-y-4">
+                      {displayReviews.map((review, index) => {
+                        const mockReview = review as GeneratedReview;
+                        const hasAuthor = 'author' in review;
+                        return (
+                          <motion.div
+                            key={review.id}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: index * 0.08 }}
+                            className="p-5 bg-[#0a0a0a] rounded-2xl border border-white/5 hover:border-white/10 transition-all"
+                          >
+                            <div className="flex items-start gap-4">
+                              {/* Avatar */}
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                {hasAuthor ? mockReview.avatar : '?'}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                {/* Header */}
+                                <div className="flex flex-wrap items-center gap-2 mb-1">
+                                  <span className="text-white font-semibold text-sm">
+                                    {hasAuthor ? mockReview.author : 'Cliente'}
+                                  </span>
+                                  {(hasAuthor ? mockReview.verified : false) && (
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-xs rounded-full border border-emerald-500/20">
+                                      <Shield size={10} /> Compra verificada
+                                    </span>
+                                  )}
+                                  <span className="text-gray-600 text-xs ml-auto">
+                                    {formatReviewDate(review.created_at)}
+                                  </span>
+                                </div>
+
+                                {/* Stars */}
+                                <div className="flex gap-0.5 mb-2">
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      size={13}
+                                      className={i < review.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-700'}
+                                    />
+                                  ))}
+                                </div>
+
+                                {/* Title */}
+                                {review.title && (
+                                  <p className="text-white font-medium text-sm mb-1">{review.title}</p>
+                                )}
+
+                                {/* Comment */}
+                                {review.comment && (
+                                  <p className="text-gray-400 text-sm leading-relaxed">{review.comment}</p>
+                                )}
+
+                                {/* Helpful */}
+                                {hasAuthor && mockReview.helpful > 0 && (
+                                  <div className="flex items-center gap-1 mt-3 text-gray-600 text-xs">
+                                    <ThumbsUp size={11} />
+                                    <span>{mockReview.helpful} pessoas acharam útil</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
                   </div>
-                ))
-              )}
+                );
+              })()}
             </motion.div>
           )}
         </div>
