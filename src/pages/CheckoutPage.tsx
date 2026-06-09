@@ -77,20 +77,6 @@ export default function CheckoutPage() {
       setCheckingPayment(false);
     }
   };
-  
-  // Track Initiate Checkout
-  useEffect(() => {
-    // Meta Pixel
-    pixelInitiateCheckout(finalTotal);
-    // Utmify
-    if (typeof window !== 'undefined' && (window as unknown as { utmify?: { sendEvent: (event: string) => void } }).utmify) {
-      try {
-        (window as unknown as { utmify?: { sendEvent: (event: string) => void } }).utmify.sendEvent('InitiateCheckout');
-      } catch (e) {
-        console.error('Erro ao disparar InitiateCheckout:', e);
-      }
-    }
-  }, []);
 
   const [form, setForm] = useState({
     name: '', email: '', phone: '', cpf: '',
@@ -172,6 +158,30 @@ export default function CheckoutPage() {
   const isMasterAdmin = form.email.toLowerCase().trim() === 'nicolas.tensi@gmail.com' || form.cpf.replace(/\D/g, '') === '03915567116';
   const finalTotal = isMasterAdmin ? 1.00 : total + shipping;
   const pixDiscount = isMasterAdmin ? 0 : total * 0.05;
+
+  // 🔵 Meta Pixel: Dispara o evento de Purchase quando o pagamento é confirmado
+  useEffect(() => {
+    if (paymentApproved && orderId) {
+      pixelPurchase(finalTotal - pixDiscount, 'BRL', orderId);
+    }
+  }, [paymentApproved, orderId, finalTotal, pixDiscount]);
+
+  // Track Initiate Checkout
+  useEffect(() => {
+    // Meta Pixel
+    pixelInitiateCheckout(finalTotal);
+    // Utmify
+    if (typeof window !== 'undefined') {
+      const utmify = (window as unknown as { utmify?: { sendEvent: (event: string) => void } }).utmify;
+      if (utmify) {
+        try {
+          utmify.sendEvent('InitiateCheckout');
+        } catch (e) {
+          console.error('Erro ao disparar InitiateCheckout:', e);
+        }
+      }
+    }
+  }, [finalTotal]);
 
   const updateForm = (field: string, value: string) => {
     let formattedValue = value;
@@ -280,8 +290,6 @@ export default function CheckoutPage() {
                   pix_qr_code: pixResult.pix_qr_code || '',
                   transaction_id: pixResult.transaction_id
                 });
-                // 🔵 Meta Pixel: Purchase
-                pixelPurchase(finalTotal - pixDiscount, 'BRL', order.id);
               } else {
                 alert("Erro ao gerar PIX real: " + (pixResult.error || "Verifique as chaves no .env"));
               }
